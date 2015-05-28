@@ -1,0 +1,20 @@
+{
+    "GBPTests.create_policy_action": [
+        {
+            "args": {
+                "gbp_args": {},
+            },
+            "runner": {
+                "type": "constant",
+                "times": 4,
+                "concurrency": 4
+            },
+            "context": {
+                "users": {
+                    "tenants": 4,
+                    "users_per_tenant": 1
+                },
+            }
+        }
+    ]
+}
