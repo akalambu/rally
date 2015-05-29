@@ -29,11 +29,14 @@ class GBPScenario(base.Scenario):
        Delete a policy action
        Lookup the policy action using the name
        """
-       policy_id = self._find_policy_actions(name)
-       if policy_id:
-           self.clients("gbp").delete_policy_action(policy_id)
-       else:
-           print "Policy action not found *********"
+       for i in range(10):
+           policy_id = self._find_policy_actions(name)
+           if policy_id:
+               print "Deleting policy action %s" %(policy_id)
+               self.clients("gbp").delete_policy_action(policy_id)
+               return
+       print "Policy action %s not found" %(name)
+       return
 
    def _find_policy_actions(self,name):
        """
@@ -44,4 +47,36 @@ class GBPScenario(base.Scenario):
            if policy['name'] == name:
                return policy['id']
        return None
-    
+
+   @base.atomic_action_timer("gbp.create_policy_classifier")
+   def _create_policy_classifier(self, name, protocol, port_range, direction):
+       body = {
+           "policy_classifier": {
+              "name": name,
+              "protocol": protocol,
+              "port_range": port_range,
+              "direction": direction
+            }
+       }
+       self.clients("gbp").create_policy_classifier(body)
+
+   @base.atomic_action_timer("gbp.delete_policy_classifier")
+   def _delete_policy_classifier(self, name):
+       for i in range(10):
+           classifier_id = self._find_policy_classifier(name)
+           if classifier_id:
+               print "Deleting classifier id %s" %(classifier_id)
+               self.clients("gbp").delete_policy_classifier(classifier_id)
+      	       return
+       print "Policy classifier %s is not found" %(name)
+       return
+ 
+   def _find_policy_classifier(self, name):
+       """
+       Find a policy classifier given its name
+       """
+       classifiers = self.clients("gbp").list_policy_classifiers()
+       for classifier in classifiers["policy_classifiers"]:
+           if classifier['name'] == name:
+               return classifier['id']
+       return None
