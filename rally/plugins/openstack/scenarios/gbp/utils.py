@@ -80,3 +80,35 @@ class GBPScenario(base.Scenario):
            if classifier['name'] == name:
                return classifier['id']
        return None
+
+   @base.atomic_action_timer("gbp.create_policy_rule")
+   def _create_policy_rule(self, policy_name, classifier_name, action_name):
+       body = {
+           "policy_rule": {
+             "policy_actions": [self._find_policy_actions(action_name)],
+             "policy_classifier_id": self._find_policy_classifier(classifier_name),
+             "name": policy_name
+           }
+       }
+       self.clients("gbp").create_policy_rule(body)
+
+   def _find_policy_rule(self, name):
+       """
+       Find a policy rule given its name
+       """
+       rules = self.clients("gbp").list_policy_rules()
+       for rule in rules["policy_rules"]:
+           if rule['name'] == name:
+               return rule['id']
+       return None
+
+   @base.atomic_action_timer("gbp.delete_policy_rule")
+   def _delete_policy_rule(self, name):
+       for i in range(10):
+           policy_rule_id = self._find_policy_rule(name)
+           if policy_rule_id:
+               print "Deleting policy rule %s" %(policy_rule_id)
+	       self.clients("gbp").delete_policy_rule(policy_rule_id)
+               return
+       print "Policy rule %s not found" %(name)
+       return

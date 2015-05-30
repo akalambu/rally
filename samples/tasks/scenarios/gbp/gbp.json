@@ -6,12 +6,12 @@
             },
             "runner": {
                 "type": "constant",
-                "times": 4,
-                "concurrency": 4 
+                "times": 1,
+                "concurrency": 1 
             },
             "context": {
                 "users": {
-                    "tenants": 4,
+                    "tenants": 1,
                     "users_per_tenant": 1
                 },
             }
