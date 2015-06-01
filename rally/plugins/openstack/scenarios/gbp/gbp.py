@@ -11,6 +11,12 @@ class GBPTests(utils.GBPScenario):
         self._create_policy_classifier("web-traffic","tcp", "80", "in")
         # Now create a policy rule 
         self._create_policy_rule("web-policy-rule", "web-traffic", "allow")
+        # Now create a policy rule set
+        self._create_policy_rule_set("web-ruleset", ["web-policy-rule"])
+        # Now create a policy target group
+        self._create_policy_target_group("web")
+        self._delete_policy_target_group("web")
+        self._delete_policy_rule_set("web-ruleset")
         self._delete_policy_rule("web-policy-rule")
         self._delete_policy_classifier("web-traffic")
         self._delete_policy_action()
