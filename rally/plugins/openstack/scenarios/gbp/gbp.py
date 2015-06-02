@@ -15,6 +15,9 @@ class GBPTests(utils.GBPScenario):
         self._create_policy_rule_set("web-ruleset", ["web-policy-rule"])
         # Now create a policy target group
         self._create_policy_target_group("web")
+        # Now update the policy target group
+        self._update_policy_target_group("web", provided_policy_rulesets=["web-ruleset"])
+        # Now create a policy target inside the group
         self._delete_policy_target_group("web")
         self._delete_policy_rule_set("web-ruleset")
         self._delete_policy_rule("web-policy-rule")

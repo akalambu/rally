@@ -180,3 +180,26 @@ class GBPScenario(base.Scenario):
 		print "Policy target group %s not found" %(name)
 		return
 	
+	@base.atomic_action_timer("gbp.update_policy_target_group")
+	def _update_policy_target_group(self, group_name, consumed_policy_rulesets=None, provided_policy_rulesets=None):
+		# Lookup the group id from the group name
+		group_id =  self._find_policy_target_group(group_name)
+		consumed_dict = {}
+		provided_dict = {}
+		if consumed_policy_rulesets:
+			for ruleset in consumed_policy_rulesets:
+				id = self._find_policy_rule_set(ruleset)
+				consumed_dict[id] = "scope"
+		if provided_policy_rulesets:
+			for ruleset in provided_policy_rulesets:
+				id = self._find_policy_rule_set(ruleset)
+				provided_dict[id] = "scope"
+		
+		body = {
+			"policy_target_group" : {
+				"provided_policy_rule_sets" : provided_dict,
+				"consumed_policy_rule_sets" : consumed_dict
+			}
+		}
+		self.clients("gbp").update_policy_target_group(group_id, body)
+	
