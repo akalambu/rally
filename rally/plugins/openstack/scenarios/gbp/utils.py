@@ -2,6 +2,7 @@ from rally.benchmark.scenarios import base
 from rally import osclients
 import os
 
+
 @osclients.Clients.register("gbp")
 def gbp(self):
 	from gbpclient.v2_0 import client as gbpclient
@@ -33,7 +34,6 @@ class GBPScenario(base.Scenario):
 		for i in range(10):
 			policy_id = self._find_policy_actions(name)
 			if policy_id:
-				print "Deleting policy action %s" %(policy_id)
 				self.clients("gbp").delete_policy_action(policy_id)
 				return
 		print "Policy action %s not found" %(name)
@@ -66,7 +66,6 @@ class GBPScenario(base.Scenario):
 		for i in range(10):
 			classifier_id = self._find_policy_classifier(name)
 			if classifier_id:
-				print "Deleting classifier id %s" %(classifier_id)
 				self.clients("gbp").delete_policy_classifier(classifier_id)
 				return
 		print "Policy classifier %s is not found" %(name)
@@ -108,7 +107,6 @@ class GBPScenario(base.Scenario):
 		for i in range(10):
 			policy_rule_id = self._find_policy_rule(name)
 			if policy_rule_id:
-				print "Deleting policy rule %s" %(policy_rule_id)
 				self.clients("gbp").delete_policy_rule(policy_rule_id)
 				return
 		print "Policy rule %s not found" %(name)
@@ -144,7 +142,6 @@ class GBPScenario(base.Scenario):
 		for i in range(10):
 			policy_ruleset_id = self._find_policy_rule_set(name)
 			if policy_ruleset_id:
-				print "Deleting Policy rule set %s" %(policy_ruleset_id)
 				self.clients("gbp").delete_policy_rule_set(policy_ruleset_id)
 				return
 		print "Policy rule set %s not found" %(name)
@@ -174,7 +171,6 @@ class GBPScenario(base.Scenario):
 		for i in range(10):
 			group_id = self._find_policy_target_group(name)
 			if group_id:
-				print "Deleting Policy target group %s" %(group_id)
 				self.clients("gbp").delete_policy_target_group(group_id)
 				return
 		print "Policy target group %s not found" %(name)
@@ -202,4 +198,40 @@ class GBPScenario(base.Scenario):
 			}
 		}
 		self.clients("gbp").update_policy_target_group(group_id, body)
+	
+	@base.atomic_action_timer("gbp.create_policy_target")
+	def _create_policy_target(self, name, group_name):
+		# Lookup the group id first
+		group_id = self._find_policy_target_group(group_name)
+		body = {
+			"policy_target": {
+				"policy_target_group_id": group_id,
+				"name": name
+			}
+		}
+		self.clients("gbp").create_policy_target(body)
+	
+	def _find_policy_target(self, name):
+		targets = self.clients("gbp").list_policy_targets()
+		for target in targets["policy_targets"]:
+			if target['name'] == name:
+				return target['id']
+		return None
+	
+	@base.atomic_action_timer("gbp.delete_policy_target")
+	def _delete_policy_target(self, name):
+		for i in range(10):
+			target_id = self._find_policy_target(name)
+			if target_id:
+				self.clients("gbp").delete_policy_target(target_id)
+				return
+		print "Policy target %s not found" %(name)
+		return
+	
+				
+	
+	
+	
+	
+	
 	
