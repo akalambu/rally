@@ -1,20 +1,152 @@
 {
-    "GBPTests.test_gbp": [
+    "GBPTests.create_and_delete_policy_action": [
         {
             "args": {
-                "gbp_args": {},
+                "action_type": "allow",
             },
             "runner": {
                 "type": "constant",
-                "times": 20,
+                "times": 1,
                 "concurrency": 1  
             },
             "context": {
                 "users": {
-                    "tenants": 20,
+                    "tenants": 1,
                     "users_per_tenant": 1
                 },
             }
         }
-    ]
+    ],
+    "GBPTests.create_and_delete_policy_classifier": [
+        {
+            "args": {
+                "classifier_args": {
+                    "protocol": "tcp",
+                    "port_range": "80",
+                    "direction": "in"
+                }
+            },
+            "runner": {
+                "type": "constant",
+                "times": 1,
+                "concurrency": 1  
+            },
+            "context": {
+                "users": {
+                    "tenants": 1,
+                    "users_per_tenant": 1
+                },
+            }
+        }
+    ],
+    "GBPTests.create_and_delete_policy_rule": [
+        {
+            "args": {
+                "classifier_args": {
+                    "protocol": "tcp",
+                    "port_range": "80",
+                    "direction": "in"
+                }
+            },
+            "runner": {
+                "type": "constant",
+                "times": 1,
+                "concurrency": 1  
+            },
+            "context": {
+                "users": {
+                    "tenants": 1,
+                    "users_per_tenant": 1
+                },
+            }
+        }
+    ],
+    "GBPTests.create_and_delete_policy_rule_set": [
+        {
+            "args": {
+                "classifier_args": {
+                    "protocol": "tcp",
+                    "port_range": "80",
+                    "direction": "in"
+                }
+            },
+            "runner": {
+                "type": "constant",
+                "times": 1,
+                "concurrency": 1  
+            },
+            "context": {
+                "users": {
+                    "tenants": 1,
+                    "users_per_tenant": 1
+                },
+            }
+        }
+    ],
+    "GBPTests.create_and_delete_policy_target_group": [
+        {
+            "args": {
+                "classifier_args": {
+                    "protocol": "tcp",
+                    "port_range": "80",
+                    "direction": "in"
+                }
+            },
+            "runner": {
+                "type": "constant",
+                "times": 1,
+                "concurrency": 1  
+            },
+            "context": {
+                "users": {
+                    "tenants": 1,
+                    "users_per_tenant": 1
+                },
+            }
+        }
+    ],
+    "GBPTests.create_and_update_policy_target_group": [
+        {
+            "args": {
+                "classifier_args": {
+                    "protocol": "tcp",
+                    "port_range": "80",
+                    "direction": "in"
+                }
+            },
+            "runner": {
+                "type": "constant",
+                "times": 1,
+                "concurrency": 1  
+            },
+            "context": {
+                "users": {
+                    "tenants": 1,
+                    "users_per_tenant": 1
+                },
+            }
+        }
+    ],
+    "GBPTests.create_and_delete_policy_target": [
+        {
+            "args": {
+                "classifier_args": {
+                    "protocol": "tcp",
+                    "port_range": "80",
+                    "direction": "in"
+                }
+            },
+            "runner": {
+                "type": "constant",
+                "times": 1,
+                "concurrency": 1  
+            },
+            "context": {
+                "users": {
+                    "tenants": 1,
+                    "users_per_tenant": 1
+                },
+            }
+        }
+    ],
 }
