@@ -47,6 +47,60 @@ class QuotaMixin(SynchronizedDeletion):
         return [self.tenant_uuid] if self.tenant_uuid else []
 
 
+# Group Based policy
+_grouppolicy_order = get_order(275)
+
+@base.resource(service=None, resource=None, admin_required=True)
+class GroupPolicyMixin(SynchronizedDeletion, base.ResourceManager):
+
+    def _manager(self):
+        client = self._admin_required and self.admin or self.user
+        return getattr(client, self._service)()
+
+    def id(self):
+        return self.raw_resource["id"]
+
+    def delete(self):
+        delete_method = getattr(self._manager(), "delete_%s" % self._resource)
+        delete_method(self.id())
+
+    def list(self):
+        resources = self._resource + "s"
+        list_method = getattr(self._manager(), "list_%s" % resources)
+
+        return filter(lambda r: r["tenant_id"] == self.tenant_uuid,
+                      list_method({"tenant_id": self.tenant_uuid})[resources])
+
+@base.resource("grouppolicy", "policy_target", order=next(_grouppolicy_order),
+               tenant_resource=True)
+class GroupPolicyTarget(GroupPolicyMixin):
+    pass
+
+@base.resource("grouppolicy", "policy_target_group", order=next(_grouppolicy_order),
+               tenant_resource=True)
+class GroupPolicyTargetGroup(GroupPolicyMixin):
+    pass
+
+@base.resource("grouppolicy", "policy_rule_set", order=next(_grouppolicy_order),
+               tenant_resource=True)
+class GroupPolicyRuleSet(GroupPolicyMixin):
+    pass
+
+@base.resource("grouppolicy", "policy_rule", order=next(_grouppolicy_order),
+               tenant_resource=True)
+class GroupPolicyRule(GroupPolicyMixin):
+    pass
+
+@base.resource("grouppolicy", "policy_classifier", order=next(_grouppolicy_order),
+               tenant_resource=True)
+class GroupPolicyClassifier(GroupPolicyMixin):
+    pass
+
+@base.resource("grouppolicy", "policy_action", order=next(_grouppolicy_order),
+               tenant_resource=True)
+class GroupPolicyAction(GroupPolicyMixin):
+    pass
+
 # HEAT
 
 @base.resource("heat", "stacks", order=100, tenant_resource=True)

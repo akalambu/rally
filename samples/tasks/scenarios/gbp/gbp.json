@@ -1,5 +1,5 @@
 {
-    "GBPTests.create_and_delete_policy_action": [
+    "GBPTests.create_policy_action": [
         {
             "args": {
                 "action_type": "allow",
@@ -17,7 +17,7 @@
             }
         }
     ],
-    "GBPTests.create_and_delete_policy_classifier": [
+    "GBPTests.create_policy_classifier": [
         {
             "args": {
                 "classifier_args": {
@@ -39,7 +39,7 @@
             }
         }
     ],
-    "GBPTests.create_and_delete_policy_rule": [
+    "GBPTests.create_policy_rule": [
         {
             "args": {
                 "classifier_args": {
@@ -61,7 +61,7 @@
             }
         }
     ],
-    "GBPTests.create_and_delete_policy_rule_set": [
+    "GBPTests.create_policy_rule_set": [
         {
             "args": {
                 "classifier_args": {
@@ -83,7 +83,7 @@
             }
         }
     ],
-    "GBPTests.create_and_delete_policy_target_group": [
+    "GBPTests.create_policy_target_group": [
         {
             "args": {
                 "classifier_args": {
@@ -127,7 +127,7 @@
             }
         }
     ],
-    "GBPTests.create_and_delete_policy_target": [
+    "GBPTests.create_policy_target": [
         {
             "args": {
                 "classifier_args": {
