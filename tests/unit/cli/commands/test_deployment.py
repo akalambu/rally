@@ -198,7 +198,7 @@ class DeploymentCommandsTestCase(test.TestCase):
 
         headers = ["auth_url", "username", "password", "tenant_name",
                    "region_name", "endpoint_type"]
-        fake_data = ["url", "u", "p", "t", "r", consts.EndpointType.INTERNAL]
+        fake_data = ["url", "u", "***", "t", "r", consts.EndpointType.INTERNAL]
         mock_struct.assert_called_once_with(**dict(zip(headers, fake_data)))
         mock_print_list.assert_called_once_with([mock_struct()], headers)
 
@@ -274,16 +274,20 @@ class DeploymentCommandsTestCase(test.TestCase):
         self.assertEqual(1, self.deployment.use(deployment_id))
 
     @mock.patch("rally.osclients.Clients.verified_keystone")
+    @mock.patch("rally.osclients.Clients.keystone")
     @mock.patch("rally.cli.commands.deployment.db.deployment_get")
-    def test_deployment_check(self, mock_deployment_get, mock_client):
+    def test_deployment_check(self, mock_deployment_get, mock_keystone,
+                              mock_verified_keystone):
         deployment_id = "e87e4dca-b515-4477-888d-5f6103f13b42"
         sample_endpoint = objects.Endpoint("http://192.168.1.1:5000/v2.0/",
                                            "admin",
                                            "adminpass").to_dict()
-        mock_deployment_get.return_value = {"admin": sample_endpoint}
-
-        mock_client.services.list.return_value = []
+        mock_deployment_get.return_value = {"admin": sample_endpoint,
+                                            "users": [sample_endpoint]}
         self.deployment.check(deployment_id)
+        mock_deployment_get.assert_called_once_with(deployment_id)
+        mock_keystone.assert_called_once_with()
+        mock_verified_keystone.assert_called_once_with()
 
     @mock.patch("rally.osclients.Clients.verified_keystone")
     @mock.patch("rally.cli.commands.deployment.db.deployment_get")

@@ -114,7 +114,8 @@ Then, configure DevStack to run Rally:
    cp rally/contrib/devstack/lib/rally devstack/lib/
    cp rally/contrib/devstack/extras.d/70-rally.sh devstack/extras.d/
    cd devstack
-   echo "enable_service rally" >> localrc
+   cp samples/local.conf local.conf
+   echo "enable_service rally" >> local.conf
 
 Finally, run DevStack as usually:
 
@@ -166,7 +167,7 @@ You may want to save last command as an alias:
    echo 'alias dock_rally="docker run -t -i -v ~/rally_home:/home/rally rallyforge/rally"' >> ~/.bashrc
 
 After executing ``dock_rally`` alias, or ``docker run`` you got bash running inside container with
-rally installed. You may do anytnig with rally, but you need to create db first:
+rally installed. You may do anything with rally, but you need to create db first:
 
 .. code-block:: none
 
@@ -176,5 +177,16 @@ rally installed. You may do anytnig with rally, but you need to create db first:
    There are no deployments. To create a new deployment, use:
    rally deployment create
    rally@1cc98e0b5941:~$
+
+In case you have SELinux enabled and rally fails to create database, try
+executing the following commands to put SELinux into Permissive Mode on the host machine.
+
+.. code-block:: none
+
+   $ sed -i 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config
+   $ setenforce permissive
+
+Rally currently has no SELinux policy, which is why it must be run in Permissive mode
+for certain configurations. If you can help create an SELinux policy for Rally, please contribute!
 
 More about docker: `https://www.docker.com/ <https://www.docker.com/>`_

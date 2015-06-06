@@ -21,9 +21,8 @@ import six
 
 from rally.benchmark.scenarios import base
 from rally.benchmark import utils as bench_utils
-from rally.benchmark.wrappers import network as network_wrapper
 from rally import exceptions
-
+from rally.plugins.openstack.wrappers import network as network_wrapper
 
 NOVA_BENCHMARK_OPTS = []
 option_names_and_defaults = [
@@ -393,6 +392,29 @@ class NovaScenario(base.Scenario):
                 timeout=CONF.benchmark.nova_server_delete_timeout,
                 check_interval=CONF.benchmark.nova_server_delete_poll_interval
             )
+
+    def _delete_servers(self, servers, force=False):
+        """Delete multiple servers.
+
+        :param servers: A list of servers to delete
+        :param force: If True, force_delete will be used instead of delete.
+        """
+        atomic_name = ("nova.%sdelete_servers") % (force and "force_" or "")
+        with base.AtomicAction(self, atomic_name):
+            for server in servers:
+                if force:
+                    server.force_delete()
+                else:
+                    server.delete()
+
+            for server in servers:
+                bench_utils.wait_for_delete(
+                    server,
+                    update_resource=bench_utils.get_from_manager(),
+                    timeout=CONF.benchmark.nova_server_delete_timeout,
+                    check_interval=CONF.
+                    benchmark.nova_server_delete_poll_interval
+                )
 
     @base.atomic_action_timer("nova.delete_image")
     def _delete_image(self, image):

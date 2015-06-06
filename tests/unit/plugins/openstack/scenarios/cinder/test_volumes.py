@@ -66,6 +66,21 @@ class CinderServersTestCase(test.TestCase):
         scenario.create_volume(1, fakearg="f")
         scenario._create_volume.assert_called_once_with(1, fakearg="f")
 
+    def test_create_volume_and_modify_metadata(self):
+        scenario = volumes.CinderVolumes(
+            context={"user": {"tenant_id": "fake"},
+                     "tenant": {"id": "fake", "name": "fake",
+                                "volumes": [{"id": "uuid"}]}})
+        scenario._set_metadata = mock.Mock()
+        scenario._delete_metadata = mock.Mock()
+
+        scenario.modify_volume_metadata(sets=5, set_size=4,
+                                        deletes=3, delete_size=2)
+        scenario._set_metadata.assert_called_once_with("uuid", 5, 4)
+        scenario._delete_metadata.assert_called_once_with(
+            "uuid",
+            scenario._set_metadata.return_value, 3, 2)
+
     def test_create_and_extend_volume(self):
         fake_volume = mock.MagicMock()
 
@@ -364,6 +379,44 @@ class CinderServersTestCase(test.TestCase):
         scenario._delete_volume.assert_has_calls(vol_delete_calls)
         scenario._delete_snapshot.assert_has_calls(snap_delete_calls)
 
+    @mock.patch("rally.plugins.openstack.scenarios.cinder.volumes.random")
+    def test_create_nested_snapshots_check_resources_size(self, mock_random):
+        mock_random.randint.return_value = 3
+        fake_volume = mock.MagicMock()
+        fake_snapshot = mock.MagicMock()
+        fake_clients = fakes.FakeClients()
+        fake_server = fake_clients.nova().servers.create("test_server",
+                                                         "image_id_01",
+                                                         "flavor_id_01")
+        scenario = volumes.CinderVolumes(
+
+            context={"user": {"tenant_id": "fake"},
+                     "users": [{"tenant_id": "fake", "users_per_tenant": 1}],
+                     "tenant": {"id": "fake", "name": "fake",
+                                "servers": [fake_server.uuid]}})
+
+        scenario.get_random_server = mock.MagicMock(return_value=fake_server)
+        scenario._attach_volume = mock.MagicMock()
+        scenario._detach_volume = mock.MagicMock()
+        scenario._delete_server = mock.MagicMock()
+        scenario._create_volume = mock.MagicMock(return_value=fake_volume)
+        scenario._delete_volume = mock.MagicMock()
+        scenario._create_snapshot = mock.MagicMock(return_value=fake_snapshot)
+        scenario._delete_snapshot = mock.MagicMock()
+        scenario._clients = fake_clients
+
+        scenario.create_nested_snapshots_and_attach_volume()
+
+        # NOTE: Two calls for random size and nested level
+        random_call_count = mock_random.randint.call_count
+        self.assertEqual(2, random_call_count)
+
+        calls = scenario._create_volume.mock_calls
+        expected_calls = [mock.call(3),
+                          mock.call(3, snapshot_id=fake_snapshot.id),
+                          mock.call(3, snapshot_id=fake_snapshot.id)]
+        self.assertEqual(expected_calls, calls)
+
     def test_create_volume_backup(self):
         fake_volume = mock.MagicMock()
         fake_backup = mock.MagicMock()
@@ -395,5 +448,46 @@ class CinderServersTestCase(test.TestCase):
         scenario._create_volume.assert_called_once_with(1, fakearg="f")
         scenario._create_backup.assert_called_once_with(fake_volume.id,
                                                         fakearg="f")
+        self.assertFalse(scenario._delete_volume.called)
+        self.assertFalse(scenario._delete_backup.called)
+
+    def _get_scenario(self, fake_volume, fake_backup, fake_restore):
+        scenario = volumes.CinderVolumes()
+
+        scenario._create_volume = mock.MagicMock(return_value=fake_volume)
+        scenario._create_backup = mock.MagicMock(return_value=fake_backup)
+        scenario._restore_backup = mock.MagicMock(return_value=fake_restore)
+        scenario._delete_volume = mock.MagicMock()
+        scenario._delete_backup = mock.MagicMock()
+
+        return scenario
+
+    def test_create_and_restore_volume_backup(self):
+        fake_volume = mock.MagicMock()
+        fake_backup = mock.MagicMock()
+        fake_restore = mock.MagicMock()
+        scenario = self._get_scenario(fake_volume, fake_backup, fake_restore)
+
+        volume_kwargs = {"some_var": "zaq"}
+        scenario.create_and_restore_volume_backup(
+            1, do_delete=True, create_volume_kwargs=volume_kwargs)
+        scenario._create_volume.assert_called_once_with(1, **volume_kwargs)
+        scenario._create_backup.assert_called_once_with(fake_volume.id)
+        scenario._restore_backup.assert_called_once_with(fake_backup.id)
+        scenario._delete_volume.assert_called_once_with(fake_volume)
+        scenario._delete_backup.assert_called_once_with(fake_backup)
+
+    def test_create_and_restore_volume_backup_no_delete(self):
+        fake_volume = mock.MagicMock()
+        fake_backup = mock.MagicMock()
+        fake_restore = mock.MagicMock()
+        scenario = self._get_scenario(fake_volume, fake_backup, fake_restore)
+
+        volume_kwargs = {"some_var": "zaq"}
+        scenario.create_and_restore_volume_backup(
+            1, do_delete=False, create_volume_kwargs=volume_kwargs)
+        scenario._create_volume.assert_called_once_with(1, **volume_kwargs)
+        scenario._create_backup.assert_called_once_with(fake_volume.id)
+        scenario._restore_backup.assert_called_once_with(fake_backup.id)
         self.assertFalse(scenario._delete_volume.called)
         self.assertFalse(scenario._delete_backup.called)

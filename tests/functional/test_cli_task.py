@@ -138,6 +138,12 @@ class TaskTestCase(unittest.TestCase):
             rally.gen_report_path(extension="html")))
         self.assertRaises(utils.RallyCliError,
                           rally, "task report --report %s" % FAKE_TASK_UUID)
+        rally("task report --junit --out %s" %
+              rally.gen_report_path(extension="junit"))
+        self.assertTrue(os.path.exists(
+            rally.gen_report_path(extension="junit")))
+        self.assertRaises(utils.RallyCliError,
+                          rally, "task report --report %s" % FAKE_TASK_UUID)
 
     def test_report_bunch_uuids(self):
         rally = utils.Rally()
@@ -294,6 +300,42 @@ class TaskTestCase(unittest.TestCase):
         result = re.search(
             r"(?P<task_id>[0-9a-f\-]{36}): started", output)
         self.assertIsNotNone(result)
+
+    def test_validate_with_plugin_paths(self):
+        rally = utils.Rally()
+        with mock.patch.dict("os.environ", utils.TEST_ENV):
+            plugin_paths = ("tests/functional/extra/fake_dir1/,"
+                            "tests/functional/extra/fake_dir2/")
+            task_file = "tests/functional/extra/test_fake_scenario.json"
+            output = rally(("--plugin-paths %(plugin_paths)s "
+                            "task validate --task %(task_file)s") %
+                           {"task_file": task_file,
+                            "plugin_paths": plugin_paths})
+
+            self.assertIn("Task config is valid", output)
+
+            plugin_paths = ("tests/functional/extra/fake_dir1/"
+                            "fake_plugin1.py,"
+                            "tests/functional/extra/fake_dir2/"
+                            "fake_plugin2.py")
+            task_file = "tests/functional/extra/test_fake_scenario.json"
+            output = rally(("--plugin-paths %(plugin_paths)s "
+                            "task validate --task %(task_file)s") %
+                           {"task_file": task_file,
+                            "plugin_paths": plugin_paths})
+
+            self.assertIn("Task config is valid", output)
+
+            plugin_paths = ("tests/functional/extra/fake_dir1/,"
+                            "tests/functional/extra/fake_dir2/"
+                            "fake_plugin2.py")
+            task_file = "tests/functional/extra/test_fake_scenario.json"
+            output = rally(("--plugin-paths %(plugin_paths)s "
+                            "task validate --task %(task_file)s") %
+                           {"task_file": task_file,
+                            "plugin_paths": plugin_paths})
+
+            self.assertIn("Task config is valid", output)
 
     def _test_start_abort_on_sla_failure_success(self, cfg, times):
         rally = utils.Rally()

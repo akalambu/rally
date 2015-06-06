@@ -25,7 +25,7 @@ USEVIRTUALENV="yes"
 PYTHON2="$(which python || true)"
 PYTHON3="$(which python3 || true)"
 PYTHON=${PYTHON2:-$PYTHON3}
-BASE_PIP_URL="https://pypi.python.org/simple"
+BASE_PIP_URL=${BASE_PIP_URL:-"https://pypi.python.org/simple"}
 VIRTUALENV_191_URL="https://raw.github.com/pypa/virtualenv/1.9.1/virtualenv.py"
 
 RALLY_GIT_URL=https://github.com/openstack/rally
@@ -290,7 +290,13 @@ install_required_sw () {
         fi
     elif have_command zypper; then
         # SuSE
-        warn "Cannot check if requisite software is installed: SuSE and compatible Linux distributions are not yet supported. I'm proceeding anyway, but you may run into errors later."
+        missing=$(which_missing_packages gcc libffi48-devel python-devel openssl-devel gmp-devel libxml2-devel libxslt-devel postgresql93-devel git)
+
+        if [ "$ASKCONFIRMATION" -eq 0 ]; then
+            pkg_manager="zypper -n --no-gpg-checks --non-interactive install --auto-agree-with-licenses"
+        else
+            pkg_manager="zypper install"
+        fi
     else
         # MacOSX maybe?
         warn "Cannot determine what package manager this Linux distribution has, so I cannot check if requisite software is installed. I'm proceeding anyway, but you may run into errors later."
@@ -655,6 +661,12 @@ BASEDIR=$(dirname "$(readlink -e "$0")")
 if [ -d "$BASEDIR"/.git ]
 then
     SOURCEDIR=$BASEDIR
+    if find . -regex '.+\.py[co]$' -delete
+    then
+        echo "Wiped python compiled files."
+    else
+        echo "Warning! Unable to wipe python compiled files"
+    fi
 else
     if [ "$USEVIRTUALENV" = 'yes' ]
     then
@@ -700,10 +712,11 @@ install_db_connector
 # Install rally
 cd "$SOURCEDIR"
 # Install dependencies
-pip install pbr
-pip install 'tox<=1.6.1'
+pip install -i $BASE_PIP_URL pbr 'tox<=1.6.1'
+# Uninstall possible previous version
+pip uninstall -y rally || true
 # Install rally
-pip install .
+pip install -i $BASE_PIP_URL .
 cd "$ORIG_WD"
 
 # Post-installation

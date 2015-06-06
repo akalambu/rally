@@ -20,6 +20,7 @@ from rally.benchmark import types as types
 from rally.benchmark import validation
 from rally.common import log as logging
 from rally import consts
+from rally import exceptions
 from rally.plugins.openstack.scenarios.cinder import utils
 from rally.plugins.openstack.scenarios.glance import utils as glance_utils
 from rally.plugins.openstack.scenarios.nova import utils as nova_utils
@@ -134,6 +135,36 @@ class CinderVolumes(utils.CinderScenario,
             kwargs["imageRef"] = image
 
         self._create_volume(size, **kwargs)
+
+    @validation.required_services(consts.Service.CINDER)
+    @validation.required_openstack(users=True)
+    @validation.required_contexts("volumes")
+    @base.scenario(context={"cleanup": ["cinder"]})
+    def modify_volume_metadata(self, sets=10, set_size=3,
+                               deletes=5, delete_size=3):
+        """Modify a volume's metadata.
+
+        This requires a volume to be created with the volumes
+        context. Additionally, ``sets * set_size`` must be greater
+        than or equal to ``deletes * delete_size``.
+
+        :param sets: how many set_metadata operations to perform
+        :param set_size: number of metadata keys to set in each
+                         set_metadata operation
+        :param deletes: how many delete_metadata operations to perform
+        :param delete_size: number of metadata keys to delete in each
+                            delete_metadata operation
+        """
+        if sets * set_size < deletes * delete_size:
+            raise exceptions.InvalidArgumentsException(
+                "Not enough metadata keys will be created: "
+                "Setting %(num_keys)s keys, but deleting %(num_deletes)s" %
+                {"num_keys": sets * set_size,
+                 "num_deletes": deletes * delete_size})
+
+        volume = random.choice(self.context["tenant"]["volumes"])
+        keys = self._set_metadata(volume["id"], sets, set_size)
+        self._delete_metadata(volume["id"], keys, deletes, delete_size)
 
     @validation.required_services(consts.Service.CINDER)
     @validation.required_openstack(users=True)
@@ -342,6 +373,12 @@ class CinderVolumes(utils.CinderScenario,
         if nested_level is None:
             nested_level = {"min": 5, "max": 10}
 
+        # NOTE: Volume size cannot be smaller than the snapshot size, so
+        #       volume with specified size should be created to avoid
+        #       size mismatching between volume and snapshot due random
+        #       size in _create_volume method.
+        size = random.randint(size["min"], size["max"])
+
         nested_level = random.randint(nested_level["min"], nested_level["max"])
 
         source_vol = self._create_volume(size)
@@ -427,6 +464,34 @@ class CinderVolumes(utils.CinderScenario,
         """
         volume = self._create_volume(size, **kwargs)
         backup = self._create_backup(volume.id, **kwargs)
+
+        if do_delete:
+            self._delete_volume(volume)
+            self._delete_backup(backup)
+
+    @validation.required_cinder_services("cinder-backup")
+    @validation.required_services(consts.Service.CINDER)
+    @validation.required_openstack(users=True)
+    @base.scenario(context={"cleanup": ["cinder"]})
+    def create_and_restore_volume_backup(self, size, do_delete=True,
+                                         create_volume_kwargs=None,
+                                         create_backup_kwargs=None):
+        """Restore volume backup.
+
+        :param size: volume size in GB
+        :param do_delete: if True, the volume and the volume backup will
+                          be deleted after creation.
+        :param create_volume_kwargs: optional args to create a volume
+        :param create_backup_kwargs: optional args to create a volume backup
+        """
+        if create_volume_kwargs is None:
+            create_volume_kwargs = {}
+        if create_backup_kwargs is None:
+            create_backup_kwargs = {}
+
+        volume = self._create_volume(size, **create_volume_kwargs)
+        backup = self._create_backup(volume.id, **create_backup_kwargs)
+        self._restore_backup(backup.id)
 
         if do_delete:
             self._delete_volume(volume)

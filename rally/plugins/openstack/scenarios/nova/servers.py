@@ -19,12 +19,12 @@ from rally.benchmark.scenarios import base
 from rally.benchmark.scenarios import utils as scenario_utils
 from rally.benchmark import types as types
 from rally.benchmark import validation
-from rally.benchmark.wrappers import network as network_wrapper
 from rally.common import log as logging
 from rally import consts
 from rally import exceptions as rally_exceptions
 from rally.plugins.openstack.scenarios.cinder import utils as cinder_utils
 from rally.plugins.openstack.scenarios.nova import utils
+from rally.plugins.openstack.wrappers import network as network_wrapper
 
 LOG = logging.getLogger(__name__)
 
@@ -102,6 +102,33 @@ class NovaServers(utils.NovaScenario,
         server = self._boot_server(image, flavor, **kwargs)
         self.sleep_between(min_sleep, max_sleep)
         self._delete_server(server, force=force_delete)
+
+    @types.set(image=types.ImageResourceType,
+               flavor=types.FlavorResourceType)
+    @validation.image_valid_on_flavor("flavor", "image")
+    @validation.required_services(consts.Service.NOVA)
+    @validation.required_openstack(admin=True, users=True)
+    @base.scenario(context={"cleanup": ["nova"]})
+    def boot_and_delete_multiple_servers(self, image, flavor, count=2,
+                                         min_sleep=0, max_sleep=0,
+                                         force_delete=False, **kwargs):
+        """Boot multiple servers in a single request and delete them.
+
+        Deletion is done in parallel with one request per server, not
+        with a single request for all servers.
+
+        :param image: The image to boot from
+        :param flavor: Flavor used to boot instance
+        :param count: Number of instances to boot
+        :param min_sleep: Minimum sleep time in seconds (non-negative)
+        :param max_sleep: Maximum sleep time in seconds (non-negative)
+        :param force_delete: True if force_delete should be used
+        :param kwargs: Optional additional arguments for instance creation
+        """
+        servers = self._boot_servers(image, flavor, 1, instances_amount=count,
+                                     **kwargs)
+        self.sleep_between(min_sleep, max_sleep)
+        self._delete_servers(servers, force=force_delete)
 
     @types.set(image=types.ImageResourceType,
                flavor=types.FlavorResourceType)

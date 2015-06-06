@@ -21,13 +21,16 @@ import six
 
 from rally.benchmark.scenarios import base
 from rally.benchmark import utils as bench_utils
-from rally.benchmark.wrappers import network as network_wrapper
 from rally.common.i18n import _
 from rally.common import log as logging
 from rally.common import sshutils
 from rally import exceptions
+from rally.plugins.openstack.wrappers import network as network_wrapper
 
 LOG = logging.getLogger(__name__)
+
+ICMP_UP_STATUS = "ICMP UP"
+ICMP_DOWN_STATUS = "ICMP DOWN"
 
 
 class VMScenario(base.Scenario):
@@ -124,9 +127,11 @@ class VMScenario(base.Scenario):
 
     @base.atomic_action_timer("vm.wait_for_ping")
     def _wait_for_ping(self, server_ip):
+        server_ip = netaddr.IPAddress(server_ip)
         bench_utils.wait_for(
             server_ip,
-            is_ready=self._ping_ip_address,
+            is_ready=bench_utils.resource_is(ICMP_UP_STATUS,
+                                             self._ping_ip_address),
             timeout=120
         )
 
@@ -156,13 +161,16 @@ class VMScenario(base.Scenario):
                                           script, is_file)
 
     @staticmethod
-    def _ping_ip_address(host, should_succeed=True):
-        ip = netaddr.IPAddress(host)
-        ping = "ping" if ip.version == 4 else "ping6"
+    def _ping_ip_address(host):
+        """Check ip address that it is pingable.
+
+        :param host: instance of `netaddr.IPAddress`
+        """
+        ping = "ping" if host.version == 4 else "ping6"
         if sys.platform.startswith("linux"):
-            cmd = [ping, "-c1", "-w1", host]
+            cmd = [ping, "-c1", "-w1", str(host)]
         else:
-            cmd = [ping, "-c1", host]
+            cmd = [ping, "-c1", str(host)]
 
         proc = subprocess.Popen(cmd,
                                 stdout=subprocess.PIPE,
@@ -170,4 +178,4 @@ class VMScenario(base.Scenario):
         proc.wait()
         LOG.debug("Host %s is ICMP %s"
                   % (host, proc.returncode and "down" or "up"))
-        return (proc.returncode == 0) == should_succeed
+        return ICMP_UP_STATUS if (proc.returncode == 0) else ICMP_DOWN_STATUS
